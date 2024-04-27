@@ -8,16 +8,18 @@ module.exports = {
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
     entry: {
         index: path.resolve(__dirname, './src/index.tsx'),
+        background: path.resolve(__dirname, './src/background.ts'),
+        contentScriptForNicoNico: path.resolve(__dirname, './src/contentScriptForNicoNico.ts'),
     },
     output: {
         publicPath: '/',
         path: path.resolve(__dirname, 'build'),
-        filename: '[name].[hash].js',
+        filename: '[name].js',
     },
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
     },
-    devtool: 'eval-source-map',
+    devtool: 'source-map',
     module: {
         rules: [
             {
@@ -31,9 +33,9 @@ module.exports = {
         port: 3001,
     },
     plugins: [
-        new HtmlWebpackPlugin({
-            template: path.resolve(__dirname, './src/index.html'),
-        }),
+        // new HtmlWebpackPlugin({
+        //     template: path.resolve(__dirname, './src/index.html'),
+        // }),
         new ForkTsCheckerWebpackPlugin(),
         new CopyWebpackPlugin({
             patterns: [{ from: 'src/static', to: './' }],

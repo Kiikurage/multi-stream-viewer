@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "start": "webpack-cli serve",
-    "build": "webpack-cli bundle ",
+    "build": "webpack-cli bundle",
+    "build:watch": "webpack-cli bundle -w",
     "prebuild": "npm run clean",
     "clean": "rimraf ./build",
     "test": "npm run test:jest",

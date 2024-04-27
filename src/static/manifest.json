@@ -4,6 +4,22 @@
     "description": "View multiple video streaming in single view",
     "version": "1.0",
     "action": {
-        "default_popup": "hello.html"
-    }
+    },
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "permissions": [
+        "declarativeNetRequest"
+    ],
+    "host_permissions": [
+        "*://live.nicovideo.jp/*"
+    ],
+    "content_scripts": [
+        {
+            "matches": ["*://live.nicovideo.jp/watch/*"],
+            "all_frames": true,
+            "js": ["contentScriptForNicoNico.js"]
+        }
+    ]
 }
