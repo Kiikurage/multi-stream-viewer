@@ -1,0 +1,9 @@
+{
+    "manifest_version": 3,
+    "name": "Multi Viewer",
+    "description": "View multiple video streaming in single view",
+    "version": "1.0",
+    "action": {
+        "default_popup": "hello.html"
+    }
+}
