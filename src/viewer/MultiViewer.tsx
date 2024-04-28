@@ -10,7 +10,7 @@ export const MultiViewer = () => {
     const [columns, setColumns] = useState<number>(2);
     const [selectedSourceId, setSelectedSourceId] = useState<string | undefined>();
     useEffect(() => {
-        notifySourceUpdate.addHandler((sender, request) => {
+        notifySourceUpdate.addListener((sender, request) => {
             setSources(request.sources);
             setSelectedSourceId(request.sources[0]?.id);
         });
@@ -66,10 +66,7 @@ export const MultiViewer = () => {
 
     const handleCloseButtonClick = useCallback((sourceId: string) => {
         setActiveSources((activeSources) => activeSources.map((source) => (source?.id === sourceId ? null : source)));
-        //TODO: Backendでもconnectionを削除する
     }, []);
-
-    console.log(activeSources);
 
     return (
         <div

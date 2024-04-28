@@ -30,6 +30,10 @@ export class AppManager {
         });
     }
 
+    getSource(sourceId: string) {
+        return this.sources.find((source) => source.id === sourceId);
+    }
+
     addExtensionTab(tabId: number) {
         this.removeExtensionTab(tabId);
         this.extensionTabIds.push(tabId);

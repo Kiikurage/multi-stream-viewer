@@ -1,5 +1,7 @@
 import { AppManager } from './background/AppManager';
 import {
+    disconnectToBackground,
+    disconnectToSourceTab,
     shareICECandidateToBackground,
     shareICECandidateToExtensionTab,
     shareSDPToBackground,
@@ -32,6 +34,17 @@ shareICECandidateToBackground.addListener((sender, request) => {
     shareICECandidateToExtensionTab(request.extensionTabId, { candidate: request.candidate });
 
     app.addConnection(request.extensionTabId, request.sourceId);
+});
+
+disconnectToBackground.addListener((sender, request) => {
+    const extensionTab = sender.tab;
+    if (extensionTab === undefined) throw new Error('extensionTab is undefined');
+    const source = app.getSource(request.sourceId);
+    if (source === undefined) return;
+
+    disconnectToSourceTab(source.tabId, { extensionTabId: extensionTab.id });
+
+    app.removeConnection(extensionTab.id, source.id);
 });
 
 const app = new AppManager();

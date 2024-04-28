@@ -1,46 +1,73 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { shareICECandidateToExtensionTab, shareSDPToBackground } from '../rpc/webRTC';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { disconnectToBackground, shareICECandidateToExtensionTab, shareSDPToBackground } from '../rpc/webRTC';
 import { Source } from '../model/Source';
 
-export const VideoTile = ({ source, onCloseButtonClick }: { source: Source; onCloseButtonClick: () => void }) => {
-    const [stream] = useState<MediaStream>(() => new MediaStream());
+class WebRTCReceiverClient {
+    readonly stream = new MediaStream();
+    private readonly connection: RTCPeerConnection;
 
+    constructor(private source: Source) {
+        this.connection = new RTCPeerConnection();
+
+        const videoTransceiver = this.connection.addTransceiver('video', { direction: 'recvonly' });
+        const audioTransceiver = this.connection.addTransceiver('audio', { direction: 'recvonly' });
+        this.stream.addTrack(videoTransceiver.receiver.track);
+        this.stream.addTrack(audioTransceiver.receiver.track);
+    }
+
+    async connect() {
+        shareICECandidateToExtensionTab.addListener(this.handleShareICECandidateToExtensionTab);
+
+        const offer = await this.connection.createOffer();
+        await this.connection.setLocalDescription(offer);
+        const { answer } = await shareSDPToBackground({ offer, sourceTabId: this.source.tabId });
+        await this.connection.setRemoteDescription(answer);
+    }
+
+    disconnect() {
+        shareICECandidateToExtensionTab.removeListener(this.handleShareICECandidateToExtensionTab);
+        disconnectToBackground({ sourceId: this.source.id });
+        this.connection.close();
+    }
+
+    private readonly handleShareICECandidateToExtensionTab = (
+        sender: chrome.runtime.MessageSender,
+        request: { candidate: RTCIceCandidateInit },
+    ) => {
+        this.connection.addIceCandidate(request.candidate);
+    };
+}
+
+export const VideoTile = ({ source, onCloseButtonClick }: { source: Source; onCloseButtonClick: () => void }) => {
     const handleCloseButtonClick = useCallback(() => {
         onCloseButtonClick();
     }, [onCloseButtonClick]);
 
+    const clientRef = useRef<WebRTCReceiverClient>();
+    if (clientRef.current === undefined) clientRef.current = new WebRTCReceiverClient(source);
     useEffect(() => {
-        (async () => {
-            const pc = new RTCPeerConnection();
+        const client = clientRef.current;
+        if (client === undefined) return;
 
-            const videoTransceiver = pc.addTransceiver('video', { direction: 'recvonly' });
-            const audioTransceiver = pc.addTransceiver('audio', { direction: 'recvonly' });
-            stream.addTrack(videoTransceiver.receiver.track);
-            stream.addTrack(audioTransceiver.receiver.track);
+        client.connect();
 
-            shareICECandidateToExtensionTab.addHandler((sender, request) => {
-                pc.addIceCandidate(request.candidate);
-            });
-
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            const { answer } = await shareSDPToBackground({ offer, sourceTabId: source.tabId });
-            await pc.setRemoteDescription(answer);
-        })();
-    }, [stream, source.tabId]);
+        return () => client.disconnect();
+    }, []);
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
     useLayoutEffect(() => {
         const video = videoRef.current;
         if (video === null) return;
 
-        if (stream === null) return;
-        video.srcObject = stream;
+        const client = clientRef.current;
+        if (client === undefined) return;
+
+        video.srcObject = client.stream;
 
         return () => {
             video.srcObject = null;
         };
-    }, [stream, videoRef]);
+    }, [videoRef]);
 
     return (
         <div
@@ -84,6 +111,7 @@ export const VideoTile = ({ source, onCloseButtonClick }: { source: Source; onCl
                         border: 'none',
                         color: '#fff',
                         font: 'inherit',
+                        pointerEvents: 'all',
                     }}
                     onClick={handleCloseButtonClick}
                 >

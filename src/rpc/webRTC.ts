@@ -1,5 +1,4 @@
-import { Source } from '../model/Source';
-import { defineRpcToBackground, defineRpcToTab } from '../lib/rpc';
+import { defineRpcToBackground, defineRpcToTab } from '../lib/rpc'; // Session Description (SDP) negotiation
 
 // Session Description (SDP) negotiation
 export const shareSDPToBackground = defineRpcToBackground<
@@ -23,3 +22,17 @@ export const shareICECandidateToBackground = defineRpcToBackground<
 export const shareICECandidateToExtensionTab = defineRpcToTab<{ candidate: RTCIceCandidateInit }, void>(
     'shareICECandidateToExtensionTab',
 );
+
+// Disconnect
+export const disconnectToBackground = defineRpcToBackground<
+    {
+        sourceId: string;
+    },
+    void
+>('disconnectToBackground');
+export const disconnectToSourceTab = defineRpcToTab<
+    {
+        extensionTabId: number;
+    },
+    void
+>('disconnectToSourceTab');

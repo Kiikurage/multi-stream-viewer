@@ -14,8 +14,10 @@ export abstract class MediaElementSourceAdapter {
     private sourceStream: MediaStream | null = null;
 
     protected constructor() {
-        shareSDPToSourceTab.addHandler(async (sender, request) => {
-            const client = new WebRTCSenderClient(this.sourceId, request.extensionTabId, this.getStream());
+        shareSDPToSourceTab.addListener(async (sender, request) => {
+            const client = new WebRTCSenderClient(this.sourceId, request.extensionTabId, this.getStream(), () => {
+                this.sourceStream = null;
+            });
             const answer = await client.acceptOffer(request.offer);
 
             return { answer };
