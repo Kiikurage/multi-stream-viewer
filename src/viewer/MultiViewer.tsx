@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { notifySourceUpdate, registerExtensionTab } from '../rpc/application';
-import { shareICECandidateToExtensionTab, shareSDPToBackground } from '../rpc/webRTC';
 import { Source } from '../model/Source';
+import { VideoTile } from './VideoTile';
+import { GridLayoutView } from './GridLayoutView';
 
 export const MultiViewer = () => {
     const [sources, setSources] = useState<Source[]>([]);
+    const [rows, setRows] = useState<number>(2);
+    const [columns, setColumns] = useState<number>(2);
     const [selectedSourceId, setSelectedSourceId] = useState<string | undefined>();
     useEffect(() => {
         notifySourceUpdate.addHandler((sender, request) => {
@@ -24,24 +27,62 @@ export const MultiViewer = () => {
         });
     }, [sources]);
 
-    const [activeSources, setActiveSources] = useState<Source[]>([]);
+    const [activeSources, setActiveSources] = useState<(Source | null)[]>([]);
     useEffect(() => {
         setActiveSources((activeSources) => {
-            return activeSources.filter((source) => sources.some((s) => source.id === s.id));
+            return activeSources.map((source) => {
+                if (source === null) return null;
+                if (sources.some((s) => source.id === s.id)) {
+                    return source;
+                } else {
+                    return null;
+                }
+            });
         });
     }, [sources]);
+    useEffect(() => {
+        setActiveSources((oldSources) => {
+            const newSources = oldSources.slice(0, rows * columns);
+            while (newSources.length < rows * columns) {
+                newSources.push(null);
+            }
+            return newSources;
+        });
+    }, [rows, columns, sources]);
 
     const handleAddButtonClick = useCallback(() => {
         const selectedSource = sources.find((tab) => tab.id === selectedSourceId);
         if (selectedSource === undefined) return;
 
-        setActiveSources((activeSources) => [...activeSources, selectedSource]);
+        setActiveSources((sources) => {
+            const index = sources.findIndex((source) => source === null);
+            if (index === -1) return sources;
+
+            const newSources = [...sources];
+            newSources[index] = selectedSource;
+            return newSources;
+        });
     }, [selectedSourceId, sources]);
 
+    const handleCloseButtonClick = useCallback((sourceId: string) => {
+        setActiveSources((activeSources) => activeSources.map((source) => (source?.id === sourceId ? null : source)));
+        //TODO: Backendでもconnectionを削除する
+    }, []);
+
+    console.log(activeSources);
+
     return (
-        <div style={{ position: 'fixed', inset: 0 }}>
+        <div
+            style={{
+                position: 'fixed',
+                inset: 0,
+                display: 'grid',
+                gridTemplate: '"header" auto\n"grid" 1fr / 1fr',
+            }}
+        >
             <header
                 style={{
+                    gridArea: 'header',
                     display: 'flex',
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -57,54 +98,53 @@ export const MultiViewer = () => {
                     ))}
                 </select>
                 <button onClick={handleAddButtonClick}>追加</button>
+
+                <span>縦</span>
+                <select value={rows} onChange={(ev) => setRows(+ev.currentTarget.value)}>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+
+                <span>横</span>
+                <select value={columns} onChange={(ev) => setColumns(+ev.currentTarget.value)}>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
             </header>
-            <div>
-                {activeSources.map((source) => (
-                    <VideoRow key={source.id} source={source} />
-                ))}
+            <div
+                style={{
+                    gridArea: 'grid',
+                }}
+            >
+                <GridLayoutView columns={columns} rows={rows}>
+                    {activeSources.map((source, i) => {
+                        if (source === null) return null;
+
+                        const row = Math.floor(i / columns);
+                        const col = i % columns;
+                        return (
+                            <div
+                                key={i}
+                                style={{
+                                    gridRow: row + 1,
+                                    gridColumn: col + 1,
+                                }}
+                            >
+                                <VideoTile
+                                    source={source}
+                                    onCloseButtonClick={() => handleCloseButtonClick(source.id)}
+                                />
+                            </div>
+                        );
+                    })}
+                </GridLayoutView>
             </div>
-        </div>
-    );
-};
-
-export const VideoRow = ({ source }: { source: Source }) => {
-    const [stream] = useState<MediaStream>(() => new MediaStream());
-    useEffect(() => {
-        (async () => {
-            const pc = new RTCPeerConnection();
-
-            const videoTransceiver = pc.addTransceiver('video', { direction: 'recvonly' });
-            const audioTransceiver = pc.addTransceiver('audio', { direction: 'recvonly' });
-            stream.addTrack(videoTransceiver.receiver.track);
-            stream.addTrack(audioTransceiver.receiver.track);
-
-            shareICECandidateToExtensionTab.addHandler((sender, request) => {
-                pc.addIceCandidate(request.candidate);
-            });
-
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            const { answer } = await shareSDPToBackground({ offer, sourceTabId: source.tabId });
-            await pc.setRemoteDescription(answer);
-        })();
-    }, [stream, source.tabId]);
-
-    const videoRef = useRef<HTMLVideoElement | null>(null);
-    useLayoutEffect(() => {
-        const video = videoRef.current;
-        if (video === null) return;
-
-        if (stream === null) return;
-        video.srcObject = stream;
-
-        return () => {
-            video.srcObject = null;
-        };
-    }, [stream, videoRef]);
-
-    return (
-        <div>
-            <video autoPlay ref={videoRef} width={640} controls />
         </div>
     );
 };
