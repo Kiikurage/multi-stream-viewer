@@ -1,30 +1,109 @@
-import { FC, useCallback, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Rpc } from './rpc';
+import { Source } from './AppManager';
 
-export const App: FC = () => {
-    const [tabs, setTabs] = useState<Rpc.TabData[]>([]);
-
-    const handleClick = useCallback(async () => {
-        const tabs = await Rpc.getTabList();
-        setTabs(tabs);
+export const App = () => {
+    const [sources, setSources] = useState<Source[]>([]);
+    const [selectedSourceId, setSelectedSourceId] = useState<string | undefined>();
+    useEffect(() => {
+        Rpc.notifySourceUpdate.addHandler((sender, request) => {
+            setSources(request.sources);
+            setSelectedSourceId(request.sources[0]?.id);
+        });
+        Rpc.registerExtensionTab();
     }, []);
 
-    const handleDisplayButtonClick = useCallback(async (tabId: number) => {
-        const videoUrl = await Rpc.requestVideoUrl({ tabId });
-        console.log(videoUrl);
-    }, []);
+    useEffect(() => {
+        setSelectedSourceId((sourceId) => {
+            if (sources.find((source) => source.id === sourceId) === undefined) {
+                return undefined;
+            } else {
+                return sourceId;
+            }
+        });
+    }, [sources]);
+
+    const [activeSources, setActiveSources] = useState<Source[]>([]);
+    useEffect(() => {
+        setActiveSources((activeSources) => {
+            return activeSources.filter((source) => sources.some((s) => source.id === s.id));
+        });
+    }, [sources]);
+
+    const handleAddButtonClick = useCallback(() => {
+        const selectedSource = sources.find((tab) => tab.id === selectedSourceId);
+        if (selectedSource === undefined) return;
+
+        setActiveSources((activeSources) => [...activeSources, selectedSource]);
+    }, [selectedSourceId, sources]);
+
+    return (
+        <div style={{ position: 'fixed', inset: 0 }}>
+            <header
+                style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: '8px 16px',
+                    gap: '16px',
+                }}
+            >
+                <select value={selectedSourceId} onChange={(ev) => setSelectedSourceId(ev.currentTarget.value)}>
+                    {sources.map((source) => (
+                        <option key={source.id} value={source.id}>
+                            {source.title}
+                        </option>
+                    ))}
+                </select>
+                <button onClick={handleAddButtonClick}>追加</button>
+            </header>
+            <div>
+                {activeSources.map((source) => (
+                    <VideoRow key={source.id} source={source} />
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export const VideoRow = ({ source }: { source: Source }) => {
+    const [stream] = useState<MediaStream>(() => new MediaStream());
+    useEffect(() => {
+        (async () => {
+            const pc = new RTCPeerConnection();
+
+            const videoTransceiver = pc.addTransceiver('video', { direction: 'recvonly' });
+            const audioTransceiver = pc.addTransceiver('audio', { direction: 'recvonly' });
+            stream.addTrack(videoTransceiver.receiver.track);
+            stream.addTrack(audioTransceiver.receiver.track);
+
+            Rpc.shareICECandidateToExtensionTab.addHandler((sender, request) => {
+                pc.addIceCandidate(request.candidate);
+            });
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            const { answer } = await Rpc.shareSDPToBackground({ offer, sourceTabId: source.tabId });
+            await pc.setRemoteDescription(answer);
+        })();
+    }, [stream, source.tabId]);
+
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    useLayoutEffect(() => {
+        const video = videoRef.current;
+        if (video === null) return;
+
+        if (stream === null) return;
+        video.srcObject = stream;
+
+        return () => {
+            video.srcObject = null;
+        };
+    }, [stream, videoRef]);
 
     return (
         <div>
-            <button onClick={handleClick}>リロード</button>
-            <ul>
-                {tabs.map((tab) => (
-                    <li key={tab.id}>
-                        {tab.title} - {tab.url}
-                        <button onClick={() => handleDisplayButtonClick(tab.id)}>表示</button>
-                    </li>
-                ))}
-            </ul>
+            <video autoPlay ref={videoRef} width={640} controls />
         </div>
     );
 };

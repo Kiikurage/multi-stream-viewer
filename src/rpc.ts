@@ -1,19 +1,50 @@
+import { Source } from './AppManager';
+
 export module Rpc {
     export interface TabData {
         id: number;
-        url: string;
-        title: string;
+        url?: string;
+        title?: string;
     }
-    export const getTabList = defineAPIToBackground<void, TabData[]>('getTabList');
 
-    // 拡張機能ページからバックグラウンドへ動画URLをリクエスト
-    export const requestVideoUrl = defineAPIToBackground<{ tabId: number }, { tabId: number; videoUrl: string }>(
-        'requestVideoUrl',
-    );
+    export const registerExtensionTab = defineAPIToBackground<void, void>('registerViewer');
 
-    // バックグラウンドから動画ページへ動画URLをリクエスト
-    export const requestVideoUrlFromBackground = defineAPIFromBackground<void, { videoUrl: string }>(
-        'requestVideoUrlFromBackground',
+    export const registerSource = defineAPIToBackground<
+        {
+            sourceId: string;
+            title: string;
+        },
+        void
+    >('registerVideoSource');
+
+    export const notifySourceUpdate = defineAPIToTab<
+        {
+            sources: Source[];
+        },
+        void
+    >('notifySourceUpdate');
+
+    // Session Description (SDP) in WebRTC
+    export const shareSDPToBackground = defineAPIToBackground<
+        { offer: RTCSessionDescriptionInit; sourceTabId: number },
+        { answer: RTCSessionDescriptionInit }
+    >('shareSDPToBackground');
+    export const shareSDPToSourceTab = defineAPIToTab<
+        { offer: RTCSessionDescriptionInit; extensionTabId: number },
+        { answer: RTCSessionDescriptionInit }
+    >('shareSDPToSourceTab');
+
+    export const shareICECandidateToBackground = defineAPIToBackground<
+        {
+            sourceId: string;
+            candidate: RTCIceCandidateInit;
+            extensionTabId: number;
+        },
+        void
+    >('shareICECandidateToBackground');
+
+    export const shareICECandidateToExtensionTab = defineAPIToTab<{ candidate: RTCIceCandidateInit }, void>(
+        'shareICECandidateToExtensionTab',
     );
 }
 
@@ -34,15 +65,22 @@ function defineAPIToBackground<Request extends void | Record<string, unknown>, R
                 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     if (message.type !== type) return;
 
-                    Promise.resolve(handler(sender, message as unknown as Request)).then(sendResponse);
-                    return true;
+                    const response = handler(sender, message as unknown as Request);
+                    if (response === undefined) return;
+
+                    if (response instanceof Promise) {
+                        Promise.resolve(response).then(sendResponse);
+                        return true;
+                    } else {
+                        sendResponse(response);
+                    }
                 });
             },
         },
     );
 }
 
-function defineAPIFromBackground<Request extends void | Record<string, unknown>, Response = void>(
+function defineAPIToTab<Request extends void | Record<string, unknown>, Response = void>(
     type: string,
 ): {
     (tabId: number, request: Request): Promise<Response>;
@@ -59,8 +97,15 @@ function defineAPIFromBackground<Request extends void | Record<string, unknown>,
                 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     if (message.type !== type) return;
 
-                    Promise.resolve(handler(sender, message as unknown as Request)).then(sendResponse);
-                    return true;
+                    const response = handler(sender, message as unknown as Request);
+                    if (response === undefined) return;
+
+                    if (response instanceof Promise) {
+                        Promise.resolve(response).then(sendResponse);
+                        return true;
+                    } else {
+                        sendResponse(response);
+                    }
                 });
             },
         },
