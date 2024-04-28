@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { Viewer } from './Viewer';
+import { MultiViewer } from './viewer/MultiViewer';
 
 window.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('root');
@@ -9,5 +9,5 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     const root = createRoot(container);
-    root.render(<Viewer />);
+    root.render(<MultiViewer />);
 });

@@ -3,7 +3,7 @@ import { notifySourceUpdate, registerExtensionTab } from '../rpc/application';
 import { shareICECandidateToExtensionTab, shareSDPToBackground } from '../rpc/webRTC';
 import { Source } from '../model/Source';
 
-export const Viewer = () => {
+export const MultiViewer = () => {
     const [sources, setSources] = useState<Source[]>([]);
     const [selectedSourceId, setSelectedSourceId] = useState<string | undefined>();
     useEffect(() => {

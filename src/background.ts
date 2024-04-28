@@ -1,10 +1,10 @@
-import { AppManager } from './AppManager';
+import { AppManager } from './background/AppManager';
 import {
     shareICECandidateToBackground,
     shareICECandidateToExtensionTab,
     shareSDPToBackground,
     shareSDPToSourceTab,
-} from '../rpc/webRTC';
+} from './rpc/webRTC';
 
 chrome.action.onClicked.addListener(() => {
     chrome.tabs.create({ url: 'hello.html' });

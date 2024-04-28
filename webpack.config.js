@@ -6,9 +6,11 @@ module.exports = {
     cache: true,
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
     entry: {
-        viewer: path.resolve(__dirname, './src/viewer/index.tsx'),
-        background: path.resolve(__dirname, './src/background/background.ts'),
-        contentScriptForNicoNico: path.resolve(__dirname, './src/adapter/contentScriptForNicoNico.ts'),
+        viewer: path.resolve(__dirname, './src/viewer.tsx'),
+        background: path.resolve(__dirname, './src/background.ts'),
+        contentScriptForNicoLive: path.resolve(__dirname, './src/contentScriptForNicoLive.ts'),
+        contentScriptForYoutube: path.resolve(__dirname, './src/contentScriptForYoutube.ts'),
+        contentScriptForTwitch: path.resolve(__dirname, './src/contentScriptForTwitch.ts'),
     },
     output: {
         publicPath: '/',
@@ -32,9 +34,6 @@ module.exports = {
         port: 3001,
     },
     plugins: [
-        // new HtmlWebpackPlugin({
-        //     template: path.resolve(__dirname, './src/index.html'),
-        // }),
         new ForkTsCheckerWebpackPlugin(),
         new CopyWebpackPlugin({
             patterns: [{ from: 'src/static', to: './' }],

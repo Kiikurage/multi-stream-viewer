@@ -11,7 +11,6 @@
     ],
     "outDir": "./build",
     "jsx": "react-jsx",
-    "jsxImportSource": "@emotion/react"
   },
   "include": [
     "src/**/*"

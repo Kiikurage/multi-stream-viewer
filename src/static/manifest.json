@@ -14,13 +14,25 @@
         "declarativeNetRequest"
     ],
     "host_permissions": [
-        "*://live.nicovideo.jp/*"
+        "*://live.nicovideo.jp/*",
+        "*://www.youtube.com/*",
+        "*://www.twitch.tv/*"
     ],
     "content_scripts": [
         {
             "matches": ["*://live.nicovideo.jp/watch/*"],
             "all_frames": true,
-            "js": ["contentScriptForNicoNico.js"]
+            "js": ["contentScriptForNicoLive.js"]
+        },
+        {
+            "matches": ["*://www.youtube.com/watch?*"],
+            "all_frames": true,
+            "js": ["contentScriptForYoutube.js"]
+        },
+        {
+            "matches": ["*://www.twitch.tv/*"],
+            "all_frames": true,
+            "js": ["contentScriptForTwitch.js"]
         }
     ]
 }
