@@ -1,10 +1,5 @@
-import { Rpc } from './rpc';
-
-export interface Source {
-    id: string;
-    tabId: number;
-    title: string;
-}
+import { notifySourceUpdate, registerExtensionTab, registerSource } from '../rpc/application';
+import { Source } from '../model/Source';
 
 export interface Connection {
     extensionTabId: number;
@@ -16,7 +11,24 @@ export class AppManager {
     private sources: Source[] = [];
     private connections: Connection[] = [];
 
-    constructor() {}
+    constructor() {
+        registerExtensionTab.addListener((sender) => {
+            const tabId = sender.tab?.id;
+            if (tabId === undefined) return;
+
+            this.addExtensionTab(tabId);
+        });
+        registerSource.addListener((sender, request) => {
+            const tabId = sender.tab?.id;
+            if (tabId === undefined) return;
+
+            this.addSource({
+                tabId,
+                id: request.sourceId,
+                title: request.title,
+            });
+        });
+    }
 
     addExtensionTab(tabId: number) {
         this.removeExtensionTab(tabId);
@@ -102,6 +114,6 @@ export class AppManager {
     }
 
     private notifySourceUpdate(tabId: number) {
-        Rpc.notifySourceUpdate(tabId, { sources: this.sources });
+        notifySourceUpdate(tabId, { sources: this.sources });
     }
 }

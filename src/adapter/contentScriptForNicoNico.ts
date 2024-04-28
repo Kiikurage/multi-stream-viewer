@@ -1,7 +1,6 @@
-import { Rpc } from './rpc';
-import { randomId } from './randomId';
-
-const sourceId = randomId();
+import { randomId } from '../lib/randomId';
+import { registerSource } from '../rpc/application';
+import { shareICECandidateToBackground, shareSDPToSourceTab } from '../rpc/webRTC';
 
 declare global {
     interface HTMLMediaElement {
@@ -9,14 +8,16 @@ declare global {
     }
 }
 
-Rpc.shareSDPToSourceTab.addHandler(async (sender, request) => {
+const sourceId = randomId();
+
+shareSDPToSourceTab.addHandler(async (sender, request) => {
     const video = document.querySelector('video');
     if (!video) throw new Error('Video element not found');
 
     const pc = new RTCPeerConnection();
     pc.addEventListener('icecandidate', (ev) => {
         if (ev.candidate === null) return;
-        Rpc.shareICECandidateToBackground({
+        shareICECandidateToBackground({
             sourceId,
             candidate: ev.candidate,
             extensionTabId: request.extensionTabId,
@@ -56,10 +57,7 @@ function registerSourceIfReady() {
         return;
     }
 
-    Rpc.registerSource({
-        sourceId,
-        title: document.title,
-    });
+    registerSource({ sourceId, title: document.title });
 }
 
 registerSourceIfReady();

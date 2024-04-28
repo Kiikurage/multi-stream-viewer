@@ -6,9 +6,9 @@ module.exports = {
     cache: true,
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
     entry: {
-        index: path.resolve(__dirname, './src/index.tsx'),
-        background: path.resolve(__dirname, './src/background.ts'),
-        contentScriptForNicoNico: path.resolve(__dirname, './src/contentScriptForNicoNico.ts'),
+        viewer: path.resolve(__dirname, './src/viewer/index.tsx'),
+        background: path.resolve(__dirname, './src/background/background.ts'),
+        contentScriptForNicoNico: path.resolve(__dirname, './src/adapter/contentScriptForNicoNico.ts'),
     },
     output: {
         publicPath: '/',

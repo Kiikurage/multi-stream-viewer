@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Rpc } from './rpc';
-import { Source } from './AppManager';
+import { notifySourceUpdate, registerExtensionTab } from '../rpc/application';
+import { shareICECandidateToExtensionTab, shareSDPToBackground } from '../rpc/webRTC';
+import { Source } from '../model/Source';
 
-export const App = () => {
+export const Viewer = () => {
     const [sources, setSources] = useState<Source[]>([]);
     const [selectedSourceId, setSelectedSourceId] = useState<string | undefined>();
     useEffect(() => {
-        Rpc.notifySourceUpdate.addHandler((sender, request) => {
+        notifySourceUpdate.addHandler((sender, request) => {
             setSources(request.sources);
             setSelectedSourceId(request.sources[0]?.id);
         });
-        Rpc.registerExtensionTab();
+        registerExtensionTab();
     }, []);
 
     useEffect(() => {
@@ -77,13 +78,13 @@ export const VideoRow = ({ source }: { source: Source }) => {
             stream.addTrack(videoTransceiver.receiver.track);
             stream.addTrack(audioTransceiver.receiver.track);
 
-            Rpc.shareICECandidateToExtensionTab.addHandler((sender, request) => {
+            shareICECandidateToExtensionTab.addHandler((sender, request) => {
                 pc.addIceCandidate(request.candidate);
             });
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            const { answer } = await Rpc.shareSDPToBackground({ offer, sourceTabId: source.tabId });
+            const { answer } = await shareSDPToBackground({ offer, sourceTabId: source.tabId });
             await pc.setRemoteDescription(answer);
         })();
     }, [stream, source.tabId]);
