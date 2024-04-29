@@ -1,5 +1,4 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { useCellDragState } from './useCellDragState';
 
 export const GridLayoutView = ({
     rows,
@@ -20,26 +19,6 @@ export const GridLayoutView = ({
     useEffect(() => {
         setColWidths((colWidths) => adjustItemCount(colWidths, columns));
     }, [columns]);
-
-    const [cellDragState, setCellDragState] = useCellDragState();
-
-    useEffect(() => {
-        const handleMouseUp = (ev: MouseEvent) => {
-            ev.stopPropagation();
-            ev.preventDefault();
-            const { sourceCellIndex, destinationCellIndex } = cellDragState;
-
-            if (sourceCellIndex !== null && destinationCellIndex !== null) {
-                cellDragState.onDragEnd(sourceCellIndex, destinationCellIndex);
-            }
-            setCellDragState((oldState) => ({ ...oldState, isDragging: false }));
-        };
-
-        document.addEventListener('mouseup', handleMouseUp);
-        return () => {
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [cellDragState, setCellDragState]);
 
     return (
         <div

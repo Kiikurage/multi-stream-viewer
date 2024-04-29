@@ -5,7 +5,7 @@ import { VideoTile } from './VideoTile';
 import { GridLayoutView } from './GridLayoutView';
 import { GridState } from './GridState';
 import { GridCellView } from './GridCellView';
-import { CellDragState, CellDragStateContext } from './useCellDragState';
+import { DragContext } from './useDragState';
 
 export const MultiViewer = () => {
     const [gridState, setGridState] = useState<GridState>(() => GridState.create());
@@ -61,19 +61,14 @@ export const MultiViewer = () => {
         });
     }, []);
 
-    const [cellDragState, setCellDragState] = useState<CellDragState>({
-        sourceCellIndex: null,
-        destinationCellIndex: null,
-        isDragging: false,
-        onDragEnd: (sourceCellIndex, destinationCellIndex) => {
-            setGridState((oldState) => {
-                return GridState.swapCells(oldState, sourceCellIndex, destinationCellIndex);
-            });
-        },
-    });
+    const handleDragEnd = (sourceCellIndex: number, destinationCellIndex: number) => {
+        setGridState((oldState) => {
+            return GridState.swapCells(oldState, sourceCellIndex, destinationCellIndex);
+        });
+    };
 
     return (
-        <CellDragStateContext value={[cellDragState, setCellDragState]}>
+        <DragContext onDragEnd={handleDragEnd}>
             <div
                 style={{
                     position: 'fixed',
@@ -165,6 +160,6 @@ export const MultiViewer = () => {
                     </GridLayoutView>
                 </div>
             </div>
-        </CellDragStateContext>
+        </DragContext>
     );
 };

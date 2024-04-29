@@ -39,11 +39,6 @@ class WebRTCReceiverClient {
 }
 
 export const VideoTile = ({ source, onCloseButtonClick }: { source: Source; onCloseButtonClick: () => void }) => {
-    useEffect(() => {
-        console.log('mount', source);
-        console.log('unmount');
-    }, []);
-
     const handleCloseButtonClick = useCallback(() => {
         onCloseButtonClick();
     }, [onCloseButtonClick]);

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useCellDragState } from './useCellDragState';
+import { useDragState } from './useDragState';
 
 /**
  *
@@ -17,17 +17,18 @@ export const GridCellView = ({
     col: number;
     children?: ReactNode;
 }) => {
-    const [cellDragState, setCellDragState] = useCellDragState();
+    const { handleDragLeave, handleDragEnter, handleDragStart, isDestinationCell, isDragging, isSourceCell } =
+        useDragState(cellIndex);
 
     return (
         <div
             onMouseDown={(ev) => {
                 ev.stopPropagation();
                 ev.preventDefault();
-                setCellDragState((oldState) => ({ ...oldState, isDragging: true, sourceCellIndex: cellIndex }));
+                handleDragStart();
             }}
-            onMouseEnter={() => setCellDragState((oldState) => ({ ...oldState, destinationCellIndex: cellIndex }))}
-            onMouseLeave={() => setCellDragState((oldState) => ({ ...oldState, destinationCellIndex: null }))}
+            onMouseEnter={handleDragEnter}
+            onMouseLeave={handleDragLeave}
             style={{
                 position: 'relative',
                 gridRow: row,
@@ -39,16 +40,15 @@ export const GridCellView = ({
             <div
                 style={{
                     pointerEvents: 'none',
-                    visibility: cellDragState.isDragging ? 'visible' : 'hidden',
+                    visibility: isDragging ? 'visible' : 'hidden',
                     position: 'absolute',
                     inset: 0,
                     zIndex: 1,
-                    background:
-                        cellDragState.sourceCellIndex === cellIndex
-                            ? 'rgba(255,151,0,0.2)'
-                            : cellDragState.destinationCellIndex === cellIndex
-                              ? 'rgba(255,151,0,0.5)'
-                              : 'rgba(255,151,0,0.05)',
+                    background: isSourceCell
+                        ? 'rgba(255,151,0,0.2)'
+                        : isDestinationCell
+                          ? 'rgba(255,151,0,0.5)'
+                          : 'rgba(255,151,0,0.05)',
                 }}
             ></div>
         </div>
