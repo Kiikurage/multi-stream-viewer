@@ -39,6 +39,11 @@ class WebRTCReceiverClient {
 }
 
 export const VideoTile = ({ source, onCloseButtonClick }: { source: Source; onCloseButtonClick: () => void }) => {
+    useEffect(() => {
+        console.log('mount', source);
+        console.log('unmount');
+    }, []);
+
     const handleCloseButtonClick = useCallback(() => {
         onCloseButtonClick();
     }, [onCloseButtonClick]);
@@ -72,6 +77,7 @@ export const VideoTile = ({ source, onCloseButtonClick }: { source: Source; onCl
     return (
         <div
             style={{
+                zIndex: 0,
                 position: 'relative',
                 width: '100%',
                 height: '100%',
@@ -90,6 +96,7 @@ export const VideoTile = ({ source, onCloseButtonClick }: { source: Source; onCl
                 <video
                     autoPlay
                     controls
+                    muted
                     ref={videoRef}
                     style={{
                         inset: 0,
