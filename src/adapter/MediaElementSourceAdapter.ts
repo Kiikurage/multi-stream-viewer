@@ -11,12 +11,12 @@ declare global {
 
 export abstract class MediaElementSourceAdapter {
     private readonly sourceId = randomId();
-    private sourceStream: MediaStream | null = null;
+    private stream: MediaStream | null = null;
 
     protected constructor() {
         shareSDPToSourceTab.addListener(async (sender, request) => {
-            const client = new WebRTCSenderClient(this.sourceId, request.extensionTabId, this.getStream(), () => {
-                this.sourceStream = null;
+            const client = new WebRTCSenderClient(this.sourceId, request.extensionTabId, this.getCachedStream(), () => {
+                this.stream = null;
             });
             const answer = await client.acceptOffer(request.offer);
 
@@ -28,6 +28,7 @@ export abstract class MediaElementSourceAdapter {
 
     isReady(): boolean {
         const video = this.getVideo();
+        console.log(video);
         if (video === null) return false;
         if (video.paused) return false;
 
@@ -43,14 +44,18 @@ export abstract class MediaElementSourceAdapter {
         registerSource({ sourceId: this.sourceId, title: document.title });
     };
 
-    private getStream() {
-        if (this.sourceStream === null) {
-            const video = this.getVideo();
-            if (video === null) throw new Error('Video is not ready');
-
-            this.sourceStream = video.captureStream();
+    private getCachedStream() {
+        if (this.stream === null) {
+            this.stream = this.getStream();
         }
 
-        return this.sourceStream!;
+        return this.stream!;
+    }
+
+    getStream() {
+        const video = this.getVideo();
+        if (video === null) throw new Error('Video is not ready');
+
+        return video.captureStream();
     }
 }

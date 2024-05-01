@@ -13,6 +13,10 @@ export class WebRTCSenderClient {
         this.connection.addEventListener('icecandidate', this.handleIceCandidate);
         this.sourceStream.addEventListener('addtrack', this.handleStreamAddTrack);
 
+        this.sourceStream.getTracks().forEach((track) => {
+            this.connection.addTrack(track, this.sourceStream);
+        });
+
         disconnectToSourceTab.addListener(this.handleDisconnectToSourceTab);
     }
 

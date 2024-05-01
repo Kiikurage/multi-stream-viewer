@@ -1,4 +1,14 @@
 declare module chrome {
+    module action {
+        const onClicked: events.Event;
+    }
+
+    module declarativeNetRequest {
+        interface UpdateRuleOptions {}
+
+        function updateDynamicRules(options: UpdateRuleOptions, callback?: () => void): Promise<void>;
+    }
+
     // https://developer.chrome.com/docs/extensions/reference/api/events
     module events {
         // https://developer.chrome.com/docs/extensions/reference/api/events#type-Event
@@ -31,8 +41,33 @@ declare module chrome {
         >;
     }
 
-    module action {
-        const onClicked: events.Event;
+    // https://developer.chrome.com/docs/extensions/reference/api/scripting
+    module scripting {
+        // https://developer.chrome.com/docs/extensions/reference/api/scripting#type-ScriptInjection
+        interface ScriptInjection {
+            files?: string[];
+            target: InjectionTarget;
+            world?: ExecutionWorld;
+            injectImmediately?: boolean;
+        }
+
+        // https://developer.chrome.com/docs/extensions/reference/api/scripting#type-ExecutionWorld
+        type ExecutionWorld = 'ISOLATED' | 'WORLD';
+
+        // https://developer.chrome.com/docs/extensions/reference/api/scripting#type-InjectionResult
+        interface InjectionResult {}
+
+        // https://developer.chrome.com/docs/extensions/reference/api/scripting#type-InjectionTarget
+        interface InjectionTarget {
+            tabId: number;
+            allFrames?: boolean;
+        }
+
+        // https://developer.chrome.com/docs/extensions/reference/api/scripting#method-executeScript
+        function executeScript(
+            injection: ScriptInjection,
+            callback?: (results: InjectionResult[]) => void,
+        ): Promise<InjectionResult[]>;
     }
 
     // https://developer.chrome.com/docs/extensions/reference/api/tabs
@@ -89,11 +124,5 @@ declare module chrome {
             isWindowClosing: boolean;
             windowId: number;
         }
-    }
-
-    module declarativeNetRequest {
-        interface UpdateRuleOptions {}
-
-        function updateDynamicRules(options: UpdateRuleOptions, callback?: () => void): Promise<void>;
     }
 }

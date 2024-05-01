@@ -7,6 +7,7 @@ module.exports = {
             extends: ['plugin:react/recommended', 'plugin:react-hooks/recommended'],
             plugins: ['react', 'react-hooks'],
             rules: {
+                'react/no-unknown-property': 'off',
                 'react-hooks/exhaustive-deps': 'error',
                 'react/react-in-jsx-scope': 'off',
             },
@@ -26,7 +27,5 @@ module.exports = {
             env: { node: true, es6: true },
         },
     ],
-    ignorePatterns: [
-        '**/build/**/*'
-    ],
+    ignorePatterns: ['**/build/**/*'],
 };

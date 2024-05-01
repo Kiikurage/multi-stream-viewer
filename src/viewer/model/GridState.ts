@@ -1,4 +1,4 @@
-import { Source } from '../model/Source';
+import { Source } from '../../model/Source';
 
 export interface Cell {
     source: Source | null;
@@ -45,7 +45,7 @@ export module GridState {
         return newState;
     }
 
-    export function findEmptyCell(state: GridState): number | null {
+    export function findEmptyCell(state: GridState): number {
         return state.cells.findIndex((cell) => cell.source === null);
     }
 

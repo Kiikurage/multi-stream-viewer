@@ -33,7 +33,7 @@ export const GridCellView = ({
                 position: 'relative',
                 gridRow: row,
                 gridColumn: col,
-                border: '1px solid #000',
+                border: '1px solid #111',
             }}
         >
             <div style={{ zIndex: 0 }}>{children}</div>

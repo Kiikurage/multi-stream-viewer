@@ -3,58 +3,52 @@ type Listener<Request extends void | Record<string, unknown>, Response = void> =
     request: Request,
 ) => Response | Promise<Response>;
 
+const listenerByType = new Map<string, Listener<never, unknown>>();
+
+function handleMessage(
+    message: { type: string },
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response: unknown) => void,
+) {
+    const listener = listenerByType.get(message.type);
+    if (listener === undefined) return;
+
+    const response = listener(sender, message as never);
+    if (response === undefined) return;
+
+    if (response instanceof Promise) {
+        Promise.resolve(response).then(sendResponse);
+        return true;
+    } else {
+        sendResponse(response);
+    }
+}
+
 export function defineRpcToBackground<Request extends void | Record<string, unknown>, Response = void>(
     type: string,
 ): {
     (request: Request): Promise<Response>;
-    addListener(handler: Listener<Request, Response>): void;
-    removeListener(handler: Listener<Request, Response>): void;
+    addListener(listener: Listener<Request, Response>): void;
+    removeListener(listener: Listener<Request, Response>): void;
 } {
-    type Wrapper = (
-        message: { type: string },
-        sender: chrome.runtime.MessageSender,
-        sendResponse: (response: Response) => void,
-    ) => void | boolean;
-
-    function createWrapper(handler: Listener<Request, Response>) {
-        const wrapper: Wrapper = (message, sender, sendResponse) => {
-            if (message.type !== type) return;
-
-            const response = handler(sender, message as unknown as Request);
-            if (response === undefined) return;
-
-            if (response instanceof Promise) {
-                Promise.resolve(response).then(sendResponse);
-                return true;
-            } else {
-                sendResponse(response);
-            }
-        };
-
-        return wrapper;
-    }
-
-    const wrapperByListener = new Map<Listener<Request, Response>, Wrapper>();
-
     return Object.assign(
         (request: Request): Promise<Response> => {
             return chrome.runtime.sendMessage(undefined, { type, ...request });
         },
         {
-            addListener(handler: Listener<Request, Response>) {
-                this.removeListener(handler);
+            addListener(listener: Listener<Request, Response>) {
+                this.removeListener();
 
-                const wrapper = createWrapper(handler);
-                wrapperByListener.set(handler, wrapper);
-
-                chrome.runtime.onMessage.addListener(wrapper);
+                if (listenerByType.size === 0) {
+                    chrome.runtime.onMessage.addListener(handleMessage);
+                }
+                listenerByType.set(type, listener as unknown as Listener<never, never>);
             },
-            removeListener(handler: Listener<Request, Response>) {
-                const wrapper = wrapperByListener.get(handler);
-                if (wrapper === undefined) return;
-
-                chrome.runtime.onMessage.removeListener(wrapper);
-                wrapperByListener.delete(handler);
+            removeListener() {
+                listenerByType.delete(type);
+                if (listenerByType.size === 0) {
+                    chrome.runtime.onMessage.removeListener(handleMessage);
+                }
             },
         },
     );
@@ -64,54 +58,27 @@ export function defineRpcToTab<Request extends void | Record<string, unknown>, R
     type: string,
 ): {
     (tabId: number, request: Request): Promise<Response>;
-    addListener(handler: Listener<Request, Response>): void;
-    removeListener(handler: Listener<Request, Response>): void;
+    addListener(listener: Listener<Request, Response>): void;
+    removeListener(listener: Listener<Request, Response>): void;
 } {
-    type Wrapper = (
-        message: { type: string },
-        sender: chrome.runtime.MessageSender,
-        sendResponse: (response: Response) => void,
-    ) => void | boolean;
-
-    function createWrapper(handler: Listener<Request, Response>) {
-        const wrapper: Wrapper = (message, sender, sendResponse) => {
-            if (message.type !== type) return;
-
-            const response = handler(sender, message as unknown as Request);
-            if (response === undefined) return;
-
-            if (response instanceof Promise) {
-                Promise.resolve(response).then(sendResponse);
-                return true;
-            } else {
-                sendResponse(response);
-            }
-        };
-
-        return wrapper;
-    }
-
-    const wrapperByListener = new Map<Listener<Request, Response>, Wrapper>();
-
     return Object.assign(
         (tabId: number, request: Request): Promise<Response> => {
             return chrome.tabs.sendMessage(tabId, { type, ...request });
         },
         {
-            addListener(handler: Listener<Request, Response>) {
-                this.removeListener(handler);
+            addListener(listener: Listener<Request, Response>) {
+                this.removeListener();
 
-                const wrapper = createWrapper(handler);
-                wrapperByListener.set(handler, wrapper);
-
-                chrome.runtime.onMessage.addListener(wrapper);
+                if (listenerByType.size === 0) {
+                    chrome.runtime.onMessage.addListener(handleMessage);
+                }
+                listenerByType.set(type, listener as unknown as Listener<never, never>);
             },
-            removeListener(handler: Listener<Request, Response>) {
-                const wrapper = wrapperByListener.get(handler);
-                if (wrapper === undefined) return;
-
-                chrome.runtime.onMessage.removeListener(wrapper);
-                wrapperByListener.delete(handler);
+            removeListener() {
+                listenerByType.delete(type);
+                if (listenerByType.size === 0) {
+                    chrome.runtime.onMessage.removeListener(handleMessage);
+                }
             },
         },
     );

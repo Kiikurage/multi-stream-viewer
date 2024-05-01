@@ -24,7 +24,6 @@ export const GridLayoutView = ({
         <div
             style={{
                 position: 'relative',
-                background: '#000',
                 width: '100%',
                 height: '100%',
                 display: 'grid',
