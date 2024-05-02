@@ -1,151 +1,172 @@
-import { useAppState, useRemoveCellBySource, useSetSourceToEmptyCell, useUpdateGridSize } from './useAppState';
-import { useState } from 'react';
+import {
+    useAppState,
+    useRemoveCellBySource,
+    useSetSourceToEmptyCell,
+    useToggleControlPanel,
+    useUpdateGridSize,
+} from './useAppState';
 import { css } from '@emotion/react';
 import styled from '@emotion/styled';
 
 export const ControlPanel = () => {
-    const appState = useAppState();
+    const {
+        grid,
+        sources,
+        controlPanel: { expanded },
+    } = useAppState();
     const setSourceToEmptyCell = useSetSourceToEmptyCell();
     const removeCellBySource = useRemoveCellBySource();
     const updateGridSize = useUpdateGridSize();
-
-    const [collapsed, setCollapsed] = useState(false);
+    const toggleControlPanel = useToggleControlPanel();
 
     return (
         <div
             className="controlPanel"
-            style={{
-                width: collapsed ? 48 : 400,
-                background: '#282828',
-                color: '#fff',
-                boxSizing: 'border-box',
-                overflow: 'hidden',
-                transition: 'width 0.1s ease-in',
-            }}
+            css={css`
+                position: relative;
+                z-index: 1;
+                width: ${expanded ? 400 : 0}px;
+                color: #fff;
+                transition: 0.1s ease-in-out;
+            `}
         >
-            <header>
-                <button
-                    style={{
-                        display: 'flex',
-                        position: 'relative',
-                        width: 48,
-                        height: 48,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'none',
-                        border: 'none',
-                        color: '#aaa',
-                        cursor: 'pointer',
-                        marginBottom: 16,
-                    }}
-                    onClick={() => setCollapsed((collapsed) => !collapsed)}
-                >
-                    <span className="material-icons-outlined">menu</span>
-                </button>
-            </header>
             <div
-                style={{
-                    width: 400,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 32,
-                    padding: '0 16px',
-                    boxSizing: 'border-box',
-                    pointerEvents: collapsed ? 'none' : 'auto',
-                    opacity: collapsed ? 0 : 1,
-                    transition: 'opacity 0.1s ease-in',
-                }}
+                css={css`
+                    position: absolute;
+                    inset: 0;
+                    //background: rgba(10, 10, 18, 0.9);
+                    z-index: 0;
+                    border-radius: 4px;
+                    box-shadow: rgba(0, 0, 0, 0.24) 0 3px 8px;
+                    opacity: ${expanded ? 1 : 0};
+                `}
+            ></div>
+
+            <div
+                css={css`
+                    position: relative;
+                    z-index: 1;
+                    min-width: 40px;
+                `}
             >
+                <header>
+                    <button
+                        style={{
+                            display: 'flex',
+                            position: 'relative',
+                            width: 48,
+                            height: 48,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'none',
+                            border: 'none',
+                            color: '#aaa',
+                            cursor: 'pointer',
+                            marginBottom: 16,
+                        }}
+                        onClick={() => toggleControlPanel()}
+                    >
+                        <span className="material-icons-outlined">menu</span>
+                    </button>
+                </header>
                 <div
                     style={{
+                        width: 400,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 8,
+                        gap: 32,
+                        padding: '0 16px',
+                        boxSizing: 'border-box',
+                        pointerEvents: expanded ? 'auto' : 'none',
+                        opacity: expanded ? 1 : 0,
+                        transition: 'opacity 0.1s ease-in',
                     }}
                 >
-                    <header>セルの数</header>
                     <div
                         style={{
                             display: 'flex',
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 16,
-                            marginLeft: '16px',
+                            flexDirection: 'column',
+                            gap: 8,
                         }}
                     >
-                        <span className="material-icons-outlined">table_rows</span>
-                        <span>縦</span>
-                        <SizePicker
-                            value={appState.grid.rowHeights.length}
-                            onChange={(rows) => updateGridSize(rows, null)}
-                        />
+                        <header>グリッドの分割数</header>
+                        <div
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 16,
+                                marginLeft: '16px',
+                            }}
+                        >
+                            <span className="material-icons-outlined">table_rows</span>
+                            <span>縦</span>
+                            <SizePicker value={grid.rows} onChange={(rows) => updateGridSize(rows, null)} />
+                        </div>
+                        <div
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 16,
+                                marginLeft: '16px',
+                            }}
+                        >
+                            <span className="material-icons-outlined">view_week</span>
+                            <span>横</span>
+                            <SizePicker value={grid.columns} onChange={(columns) => updateGridSize(null, columns)} />
+                        </div>
                     </div>
+
                     <div
                         style={{
                             display: 'flex',
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 16,
-                            marginLeft: '16px',
+                            flexDirection: 'column',
+                            gap: 8,
                         }}
                     >
-                        <span className="material-icons-outlined">view_week</span>
-                        <span>横</span>
-                        <SizePicker
-                            value={appState.grid.colWidths.length}
-                            onChange={(columns) => updateGridSize(null, columns)}
-                        />
+                        <header>再生中の動画</header>
+
+                        {sources.map((source) => {
+                            const isActive = grid.cells.some((cell) => cell.source?.id === source.id);
+
+                            return (
+                                <Button
+                                    key={source.id}
+                                    isActive={isActive}
+                                    onClick={() => {
+                                        if (isActive) {
+                                            removeCellBySource(source);
+                                        } else {
+                                            setSourceToEmptyCell(source);
+                                        }
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            display: 'inline-block',
+                                            flex: '0 0 auto',
+                                        }}
+                                        className="material-icons-outlined"
+                                    >
+                                        {isActive ? 'visibility' : 'visibility_off'}
+                                    </span>
+                                    <span
+                                        style={{
+                                            fontSize: 16,
+                                            whiteSpace: 'nowrap',
+                                            width: '100%',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            flex: '1 1 0',
+                                        }}
+                                    >
+                                        {source.title}
+                                    </span>
+                                </Button>
+                            );
+                        })}
                     </div>
-                </div>
-
-                <div
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                    }}
-                >
-                    <header>再生中の動画</header>
-
-                    {appState.sources.map((source) => {
-                        const isActive = appState.grid.cells.some((cell) => cell.source?.id === source.id);
-
-                        return (
-                            <Button
-                                key={source.id}
-                                isActive={isActive}
-                                onClick={() => {
-                                    if (isActive) {
-                                        removeCellBySource(source);
-                                    } else {
-                                        setSourceToEmptyCell(source);
-                                    }
-                                }}
-                            >
-                                <span
-                                    style={{
-                                        display: 'inline-block',
-                                        flex: '0 0 auto',
-                                    }}
-                                    className="material-icons-outlined"
-                                >
-                                    {isActive ? 'visibility' : 'visibility_off'}
-                                </span>
-                                <span
-                                    style={{
-                                        fontSize: 16,
-                                        whiteSpace: 'nowrap',
-                                        width: '100%',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        flex: '1 1 0',
-                                    }}
-                                >
-                                    {source.title}
-                                </span>
-                            </Button>
-                        );
-                    })}
                 </div>
             </div>
         </div>
@@ -159,16 +180,20 @@ const Button = styled.button<{
     flex-direction: row;
     align-items: center;
     border: none;
-    background: ${(props) => (props.isActive ? '#fff' : 'rgba(0,0,0,0.3)')};
+    background: ${(props) => (props.isActive ? '#fff' : '#131319')};
     width: 100%;
     color: ${(props) => (props.isActive ? '#666' : '#fff')};
     text-align: left;
     padding: 0 16px;
-    height: 42px;
+    min-height: 42px;
     box-sizing: border-box;
     cursor: pointer;
     border-radius: 8px;
     gap: 16px;
+
+    &:hover {
+        background: ${(props) => (props.isActive ? '#fff' : '#1f1f27')};
+    }
 `;
 
 const SizePicker = ({ value, onChange }: { value: number; onChange: (value: number) => void }) => {
@@ -206,6 +231,12 @@ const SizePicker = ({ value, onChange }: { value: number; onChange: (value: numb
             </Button>
             <Button isActive={value === 5} onClick={() => onChange(5)}>
                 5
+            </Button>
+            <Button isActive={value === 6} onClick={() => onChange(6)}>
+                6
+            </Button>
+            <Button isActive={value === 7} onClick={() => onChange(7)}>
+                7
             </Button>
         </div>
     );

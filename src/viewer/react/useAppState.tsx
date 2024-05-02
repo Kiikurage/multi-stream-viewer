@@ -1,6 +1,7 @@
 import { createContext, Dispatch, ReactNode, SetStateAction, useContext } from 'react';
 import { AppState } from '../model/AppState';
 import { Source } from '../../model/Source';
+import { useMessageClient } from './useMessageClient';
 
 const context = createContext<[AppState, Dispatch<SetStateAction<AppState>>]>(null as never);
 
@@ -22,11 +23,13 @@ export function useAppState(): AppState {
 
 export function useSetSourceToEmptyCell() {
     const [, setAppState] = useContext(context);
+    const client = useMessageClient();
 
     return (source: Source) => {
         setAppState((oldState) => {
             return AppState.setSourceToEmptyCell(oldState, source);
         });
+        client.pullVideoData(source.id);
     };
 }
 
@@ -35,6 +38,25 @@ export function useRemoveCellBySource() {
 
     return (source: Source) => {
         setAppState((oldState) => AppState.removeCellBySource(oldState, source));
+    };
+}
+
+export function useToggleMaximizeCell(source: Source) {
+    const [, setAppState] = useContext(context);
+
+    return () => {
+        setAppState((oldState) => {
+            const index = oldState.grid.cells.findIndex((cell) => cell.source?.id === source.id);
+            if (index === -1) return oldState;
+
+            return {
+                ...oldState,
+                grid: {
+                    ...oldState.grid,
+                    maximizedCellIndex: oldState.grid.maximizedCellIndex === index ? null : index,
+                },
+            };
+        });
     };
 }
 
@@ -54,5 +76,13 @@ export function useSetSelectedSourceId() {
             ...oldState,
             selectedSourceId: sourceId,
         }));
+    };
+}
+
+export function useToggleControlPanel() {
+    const [, setAppState] = useContext(context);
+
+    return () => {
+        setAppState((oldState) => AppState.toggleControlPanel(oldState));
     };
 }

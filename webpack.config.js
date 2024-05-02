@@ -11,6 +11,8 @@ module.exports = {
         contentScriptForNicoLive: path.resolve(__dirname, './src/contentScriptForNicoLive.ts'),
         contentScriptForYoutube: path.resolve(__dirname, './src/contentScriptForYoutube.ts'),
         contentScriptForTwitch: path.resolve(__dirname, './src/contentScriptForTwitch.ts'),
+        trampoline: path.resolve(__dirname, './src/trampoline.ts'),
+        sharedWorker: path.resolve(__dirname, './src/sharedWorker.ts'),
     },
     output: {
         publicPath: '/',

@@ -2,36 +2,47 @@ import { Source } from '../../model/Source';
 
 export interface Cell {
     source: Source | null;
+    width: number;
+    height: number;
 }
 
 export interface GridState {
-    rowHeights: number[]; // percentage of total height, (0, 1]
-    colWidths: number[]; // percentage of total width, (0, 1]
+    rows: number;
+    columns: number;
     cells: Cell[];
+    maximizedCellIndex: number | null;
 }
 
 export module GridState {
     export function create(): GridState {
         return {
-            rowHeights: [1],
-            colWidths: [1],
+            rows: 1,
+            columns: 1,
             cells: [Cell.create()],
+            maximizedCellIndex: null,
         };
     }
 
-    export function pos2index(state: GridState, row: number, column: number): number {
-        return row * state.colWidths.length + column;
+    export function index2pos(columns: number, index: number): [row: number, column: number] {
+        return [Math.floor(index / columns), index % columns];
     }
 
-    export function index2pos(state: GridState, index: number): [row: number, column: number] {
-        return [Math.floor(index / state.colWidths.length), index % state.colWidths.length];
+    export function pos2index(columns: number, row: number, column: number): number {
+        return row * columns + column;
     }
 
     export function setGridSize(oldState: GridState, rows: number, columns: number): GridState {
-        const newState = { ...oldState };
-        newState.rowHeights = resizeSizeArray(newState.rowHeights, rows);
-        newState.colWidths = resizeSizeArray(newState.colWidths, columns);
-        newState.cells = resizeCellArray(newState.cells, rows * columns);
+        const newState = {
+            ...oldState,
+            rows,
+            columns,
+            cells: resizeCellArray(oldState.cells, oldState.columns, rows, columns),
+        };
+
+        if (newState.maximizedCellIndex !== null && newState.maximizedCellIndex >= newState.cells.length) {
+            newState.maximizedCellIndex = null;
+        }
+
         return newState;
     }
 
@@ -74,54 +85,38 @@ export module GridState {
     }
 }
 
-function resizeSizeArray(oldSizes: number[], count: number): number[] {
-    if (oldSizes.length === count) return oldSizes;
+function resizeCellArray(cells: Cell[], oldColumns: number, rows: number, columns: number): Cell[] {
+    const oldRows = cells.length / oldColumns;
+    if (Math.floor(oldRows) !== oldRows) throw new Error('Invalid cell count');
 
-    const newSizes = [...oldSizes];
-    while (newSizes.length < count) {
-        newSizes.push(1 / oldSizes.length);
-    }
-    while (newSizes.length > count) {
-        newSizes.pop();
-    }
+    const count = rows * columns;
 
-    const totalSize = newSizes.reduce((x, y) => x + y);
-
-    let accumulatedSize = 0;
-    for (let i = 0; i < newSizes.length - 1; i++) {
-        newSizes[i] /= totalSize;
-        accumulatedSize += newSizes[i];
-    }
-    newSizes[newSizes.length - 1] = 1 - accumulatedSize;
-
-    return newSizes;
-}
-
-function resizeCellArray(cells: Cell[], count: number): Cell[] {
     if (cells.length === count) return cells;
 
-    const newCells = [...cells];
-    while (newCells.length < count) {
-        newCells.push(Cell.create());
-    }
-
-    // Remove empty cells as much as possible, to keep video cells
-    for (let i = newCells.length - 1; i >= 0; i--) {
-        if (newCells.length === count) break;
-
-        if (newCells[i].source === null) {
-            newCells.splice(i, 1);
+    const newCells = [...cells].filter((cell, index) => {
+        const [row, column] = GridState.index2pos(oldColumns, index);
+        return row < rows && column < columns;
+    });
+    for (let row = 0; row < oldRows; row++) {
+        for (let column = oldColumns; column < columns; column++) {
+            newCells.splice(pos2index(columns, row, column), 0, Cell.create());
         }
     }
-    while (newCells.length > count) {
-        newCells.pop();
+    for (let row = oldRows; row < rows; row++) {
+        for (let column = 0; column < columns; column++) {
+            newCells.splice(pos2index(columns, row, column), 0, Cell.create());
+        }
     }
 
     return newCells;
 }
 
+function pos2index(columns: number, row: number, column: number): number {
+    return row * columns + column;
+}
+
 export module Cell {
     export function create(): Cell {
-        return { source: null };
+        return { source: null, width: 1, height: 1 };
     }
 }

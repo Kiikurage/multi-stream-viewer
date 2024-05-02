@@ -4,9 +4,22 @@ import { Source } from '../../model/Source';
 export interface AppState {
     grid: GridState;
     sources: Source[];
+    controlPanel: {
+        expanded: boolean;
+    };
 }
 
 export module AppState {
+    export function create(): AppState {
+        return {
+            grid: GridState.create(),
+            sources: [],
+            controlPanel: {
+                expanded: true,
+            },
+        };
+    }
+
     export function setSources(oldState: AppState, sources: Source[]): AppState {
         return {
             ...oldState,
@@ -29,19 +42,16 @@ export module AppState {
     export function setSourceToEmptyCell(oldState: AppState, source: Source): AppState {
         let emptyCellIndex = GridState.findEmptyCell(oldState.grid);
         if (emptyCellIndex === -1) {
-            const rows = oldState.grid.rowHeights.length;
-            const columns = oldState.grid.colWidths.length;
-
-            if (rows < columns) {
-                oldState = setGridSize(oldState, rows + 1, null);
+            if (oldState.grid.rows < oldState.grid.columns) {
+                oldState = setGridSize(oldState, oldState.grid.rows + 1, null);
             } else {
-                oldState = setGridSize(oldState, null, columns + 1);
+                oldState = setGridSize(oldState, null, oldState.grid.columns + 1);
             }
             emptyCellIndex = GridState.findEmptyCell(oldState.grid);
             if (emptyCellIndex === -1) return oldState;
         }
 
-        return updateCell(oldState, emptyCellIndex, () => ({ source }));
+        return updateCell(oldState, emptyCellIndex, (oldState) => ({ ...oldState, source }));
     }
 
     export function removeCellBySource(oldState: AppState, source: Source): AppState {
@@ -54,11 +64,16 @@ export module AppState {
     export function setGridSize(oldState: AppState, rows: number | null, columns: number | null): AppState {
         return {
             ...oldState,
-            grid: GridState.setGridSize(
-                oldState.grid,
-                rows ?? oldState.grid.rowHeights.length,
-                columns ?? oldState.grid.colWidths.length,
-            ),
+            grid: GridState.setGridSize(oldState.grid, rows ?? oldState.grid.rows, columns ?? oldState.grid.columns),
+        };
+    }
+
+    export function toggleControlPanel(oldState: AppState): AppState {
+        return {
+            ...oldState,
+            controlPanel: {
+                expanded: !oldState.controlPanel.expanded,
+            },
         };
     }
 }

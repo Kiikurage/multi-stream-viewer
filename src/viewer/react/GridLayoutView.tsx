@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode } from 'react';
 
 export const GridLayoutView = ({
     rows,
@@ -9,17 +9,6 @@ export const GridLayoutView = ({
     columns: number;
     children?: ReactNode;
 }) => {
-    const [rowHeights, setRowHeights] = useState<number[]>(() => [1]);
-    const [colWidths, setColWidths] = useState<number[]>(() => [1]);
-
-    useEffect(() => {
-        setRowHeights((rowHeights) => adjustItemCount(rowHeights, rows));
-    }, [rows]);
-
-    useEffect(() => {
-        setColWidths((colWidths) => adjustItemCount(colWidths, columns));
-    }, [columns]);
-
     return (
         <div
             style={{
@@ -27,8 +16,8 @@ export const GridLayoutView = ({
                 width: '100%',
                 height: '100%',
                 display: 'grid',
-                gridTemplateRows: generateGridTemplate(rowHeights),
-                gridTemplateColumns: generateGridTemplate(colWidths),
+                gridTemplateRows: generateGridTemplate(rows),
+                gridTemplateColumns: generateGridTemplate(columns),
             }}
         >
             {children}
@@ -36,29 +25,10 @@ export const GridLayoutView = ({
     );
 };
 
-function generateGridTemplate(sizes: number[]) {
-    return sizes.map((size) => `${size * 100}%`).join(' ');
-}
-
-function adjustItemCount(oldSizes: number[], count: number): number[] {
-    if (oldSizes.length === count) return oldSizes;
-
-    const newSizes = [...oldSizes];
-    while (newSizes.length < count) {
-        newSizes.push(1 / oldSizes.length);
+function generateGridTemplate(count: number) {
+    const sizes: number[] = [];
+    for (let i = 0; i < count; i++) {
+        sizes.push(100 / count);
     }
-    while (newSizes.length > count) {
-        newSizes.pop();
-    }
-
-    const totalSize = newSizes.reduce((x, y) => x + y);
-
-    let accumulatedSize = 0;
-    for (let i = 0; i < newSizes.length - 1; i++) {
-        newSizes[i] /= totalSize;
-        accumulatedSize += newSizes[i];
-    }
-    newSizes[newSizes.length - 1] = 1 - accumulatedSize;
-
-    return newSizes;
+    return sizes.map((s) => s + '%').join(' ');
 }

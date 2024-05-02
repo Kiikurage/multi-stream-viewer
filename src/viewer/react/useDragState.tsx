@@ -1,10 +1,11 @@
 import { createContext, Dispatch, ReactNode, SetStateAction, useContext, useEffect, useState } from 'react';
 
 export interface DragState {
+    dragType: DragType;
     isDragging: boolean;
     sourceCellIndex: number | null;
     destinationCellIndex: number | null;
-    onDragEnd: (sourceCellIndex: number, destinationCellIndex: number) => void;
+    onDragEnd: (dragType: DragType, sourceCellIndex: number, destinationCellIndex: number) => void;
 }
 
 const context = createContext<[DragState, Dispatch<SetStateAction<DragState>>]>(null as never);
@@ -13,10 +14,11 @@ export const DragContext = ({
     onDragEnd,
     children,
 }: {
-    onDragEnd: (sourceCellIndex: number, destinationCellIndex: number) => void;
+    onDragEnd: (dragType: DragType, sourceCellIndex: number, destinationCellIndex: number) => void;
     children?: ReactNode;
 }) => {
     const [state, setState] = useState<DragState>({
+        dragType: 'none',
         sourceCellIndex: null,
         destinationCellIndex: null,
         isDragging: false,
@@ -31,7 +33,7 @@ export const DragContext = ({
             document.removeEventListener('mouseup', handleMouseUp);
 
             if (state.sourceCellIndex !== null && state.destinationCellIndex !== null) {
-                state.onDragEnd(state.sourceCellIndex, state.destinationCellIndex);
+                state.onDragEnd(state.dragType, state.sourceCellIndex, state.destinationCellIndex);
             }
 
             setState((oldState) => ({ ...oldState, isDragging: false }));
@@ -48,8 +50,8 @@ export const DragContext = ({
 export function useDragState(cellIndex: number) {
     const [state, setState] = useContext(context);
 
-    const handleDragStart = () => {
-        setState((oldState) => ({ ...oldState, isDragging: true, sourceCellIndex: cellIndex }));
+    const handleDragStart = (dragType: DragType) => {
+        setState((oldState) => ({ ...oldState, dragType, isDragging: true, sourceCellIndex: cellIndex }));
     };
 
     const handleDragEnter = () => {
@@ -73,3 +75,5 @@ export function useDragState(cellIndex: number) {
         handleDragStart,
     };
 }
+
+export type DragType = 'none' | 'move' | 's-resize' | 'se-resize' | 'e-resize';

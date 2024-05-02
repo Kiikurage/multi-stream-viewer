@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { MultiViewer } from './viewer/react/MultiViewer';
+import { MessageClientContext } from './viewer/react/useMessageClient';
 
 window.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('root');
@@ -9,5 +10,9 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     const root = createRoot(container);
-    root.render(<MultiViewer />);
+    root.render(
+        <MessageClientContext>
+            <MultiViewer />
+        </MessageClientContext>,
+    );
 });
